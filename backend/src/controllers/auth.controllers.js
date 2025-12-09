@@ -1,0 +1,182 @@
+import userModel from "../models/user.model.js";
+import foodPartnerModel from "../models/foodpartner.model.js";
+import bcrypt from "bcrypt"
+import { response } from "express";
+import jwt from 'jsonwebtoken'
+
+const registerUser = async (req, res) => {
+    const { fullName, email, password } = req.body
+
+    const isUserAlreadyExist = await userModel.findOne({
+        email
+    })
+
+    if (isUserAlreadyExist) {
+        return res.status(400).json({
+            message: "user already exists"
+        })
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const user = await userModel.create({
+        fullName,
+        email,
+        password: hashedPassword
+    })
+
+    const token = jwt.sign({
+        id: user._id
+    }, process.env.JWT_SECRET)
+
+    res.cookie("token", token)
+
+    res.status(201).json({
+        message: "user registered succesfully",
+        user: {
+            _id: user._id,
+            email: user.email,
+            fullName: user.fullName
+        }
+    })
+
+
+}
+
+const loginUser = async (req, res) => {
+    const { email, password } = req.body
+    console.log(email)
+    const user = await userModel.findOne({ email })
+    console.log(user)
+
+    if (!user) {
+        console.log("wrong email")
+        return res.status(400).json({
+            message: "invalid email"
+        })
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
+    if (!isPasswordValid) {
+        console.log("invalid pass")
+        return res.status(400).json({
+            message: "invalid password"
+        })
+    }
+
+    const token = jwt.sign({
+        id: user._id
+    }, process.env.JWT_SECRET)
+
+    res.cookie("token", token)
+
+    res.status(201).json({
+        message: "user logged in succesfully",
+        user: {
+            _id: user._id,
+            email: user.email,
+            fullName: user.fullName
+        }
+    })
+}
+
+const logoutUser = async (req, res) => {
+    res.clearCookie("token")
+    res.status(200).json({
+        message: "user logedout successfully"
+    })
+}
+
+const registeFoodPartner = async (req, res) => {
+    const { fullName, email, password, phone, address, contactName } = req.body
+
+    const isFoodPartnerAlreadyExist = await foodPartnerModel.findOne({
+        email
+    })
+
+    if (isFoodPartnerAlreadyExist) {
+        return res.status(400).json({
+            message: "food partner account already exists"
+        })
+    }
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const foodPartner = await foodPartnerModel.create({
+        fullName,
+        email,
+        password: hashedPassword,
+        phone,
+        address,
+        contactName
+    })
+
+    const token = jwt.sign({
+        id: foodPartner._id
+    }, process.env.JWT_SECRET)
+
+    res.cookie("token", token)
+
+    res.status(201).json({
+        message: "food partner registered succesfully",
+        user: {
+            _id: foodPartner._id,
+            email: foodPartner.email,
+            fullName: foodPartner.fullName,
+            address: foodPartner.address,
+            contactName: foodPartner.contactName,
+            phone: foodPartner.phone
+        }
+    })
+}
+
+const loginFoodPartner = async (req, res) => {
+    const { email, password } = req.body
+
+    const foodPartner = await foodPartnerModel.findOne({ email })
+
+    if (!foodPartner) {
+        return res.status(400).json({
+            message: "invalid email"
+        })
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, foodPartner.password)
+
+    if (!isPasswordValid) {
+        return res.status(400).json({
+            message: "invalid password"
+        })
+    }
+
+    const token = jwt.sign({
+        id: foodPartner._id
+    }, process.env.JWT_SECRET)
+
+    res.cookie("token", token)
+
+    res.status(201).json({
+        message: "food partner logged in succesfully",
+        user: {
+            _id: foodPartner._id,
+            email: foodPartner.email,
+            fullName: foodPartner.fullName
+        }
+    })
+}
+
+const logoutFoodPartner = async (req, res) => {
+    res.clearCookie("token")
+    res.status(200).json({
+        message: "food partner logedout successfully"
+    })
+}
+
+export default {
+    registerUser,
+    loginUser,
+    logoutUser,
+    registeFoodPartner,
+    loginFoodPartner,
+    logoutFoodPartner
+}
